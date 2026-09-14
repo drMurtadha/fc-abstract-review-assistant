@@ -1,9 +1,10 @@
-import { createContext, useContext, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
 import { BarChart3, BookOpen, Check, ChevronDown, ClipboardCheck, Copy, FileText, GraduationCap, HelpCircle, LayoutDashboard, Menu, Plus, Printer, Save, Settings, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { sectionTitles } from './data/checklist';
 import { listLocalReviews, saveLocalReview, saveReviewerDecision, saveSubmission } from './services/apiClient';
 import { runLocalReview } from './services/localReviewEngine';
+import { clearFormDraft, loadFormDraft, saveFormDraft } from './services/formDraft';
 import { copyReportSummary } from './services/reportService';
 import type { ItemResult, ReviewResult, SubmissionInput } from './types';
 
@@ -54,8 +55,10 @@ function Landing() {
 function Feature({icon,title,text}:{icon:ReactNode,title:string,text:string}) { return <article className="feature-card"><span>{icon}</span><h3>{title}</h3><p>{text}</p></article>; }
 
 function NewReview() {
-  const [form, setForm] = useState(initialForm); const [errors, setErrors] = useState<Record<string,string>>({}); const [saving, setSaving] = useState(false); const { setCurrent, refresh } = useReviews(); const navigate = useNavigate();
+  const [form, setForm] = useState(() => loadFormDraft(initialForm)); const [errors, setErrors] = useState<Record<string,string>>({}); const [saving, setSaving] = useState(false); const { setCurrent, refresh } = useReviews(); const navigate = useNavigate();
+  useEffect(() => { saveFormDraft(form); }, [form]);
   const update = (key: keyof SubmissionInput, value: string) => { setForm((old) => ({...old,[key]:value})); setErrors((old) => ({...old,[key]:''})); };
+  const clear = () => { clearFormDraft(); setForm({...initialForm,reviewDate:new Date().toISOString().slice(0,10)}); setErrors({}); };
   const submit = async (event: FormEvent) => { event.preventDefault(); const next:Record<string,string> = {}; ['studentName','matricNo','programme','thesisTitle','englishAbstract','malayAbstract'].forEach((key) => { if (!String(form[key as keyof SubmissionInput]).trim()) next[key] = 'This field is required.'; }); setErrors(next); if (Object.keys(next).length) return; setSaving(true); const review = runLocalReview(form); try { const savedMeta = await saveSubmission(form, review); const saved = saveLocalReview({...review, backendSaved:savedMeta.backendSaved, syncWarning:savedMeta.warning, submission:{...form, submissionId:savedMeta.submissionId}}); setCurrent(saved); refresh(); navigate('/results'); } finally { setSaving(false); } };
   const saveDraft = () => { const draft = saveLocalReview(runLocalReview(form)); setCurrent(draft); refresh(); navigate('/dashboard'); };
   return <div className="page narrow"><PageTitle kicker="New assessment" title="Start an abstract review" text="Enter thesis details and both language versions. Requirements trigger warnings, not submission blocks."/>
@@ -63,7 +66,7 @@ function NewReview() {
       <FormSection number="01" title="Student & thesis details" text="Information used in the official review record."><div className="form-grid"><Field label="Student name" value={form.studentName} error={errors.studentName} onChange={(v)=>update('studentName',v)}/><Field label="Matric no." value={form.matricNo} error={errors.matricNo} onChange={(v)=>update('matricNo',v)}/><Field label="Programme" value={form.programme} error={errors.programme} onChange={(v)=>update('programme',v)} placeholder="e.g. Master of Computer Science"/><Field label="Review date" type="date" value={form.reviewDate} onChange={(v)=>update('reviewDate',v)}/><Field wide label="Thesis title" value={form.thesisTitle} error={errors.thesisTitle} onChange={(v)=>update('thesisTitle',v)}/><Field label="Supervisor name" value={form.supervisorName} onChange={(v)=>update('supervisorName',v)}/><Field label="Examiner name" value={form.examinerName} onChange={(v)=>update('examinerName',v)}/></div></FormSection>
       <FormSection number="02" title="Language order" text="The generated report follows the thesis language."><div className="choice-row">{(['English','Bahasa Melayu'] as const).map((language)=><label className={form.thesisLanguage===language?'choice selected':'choice'} key={language}><input type="radio" name="language" checked={form.thesisLanguage===language} onChange={()=>update('thesisLanguage',language)}/><span><strong>{language}</strong><small>{language==='English'?'English first, then Bahasa Melayu':'Bahasa Melayu first, then English'}</small></span></label>)}</div></FormSection>
       <FormSection number="03" title="Bilingual abstracts" text="Paste each abstract as one continuous paragraph."><AbstractBox label="English abstract" lang="EN" value={form.englishAbstract} error={errors.englishAbstract} onChange={(v)=>update('englishAbstract',v)}/><AbstractBox label="Abstrak Bahasa Melayu" lang="BM" value={form.malayAbstract} error={errors.malayAbstract} onChange={(v)=>update('malayAbstract',v)}/></FormSection>
-      <div className="form-actions"><button type="button" className="button secondary" onClick={saveDraft}><Save size={17}/> Save draft</button><button className="button primary" disabled={saving}>{saving?'Checking…':'Run pre-check'} <span>→</span></button></div>
+      <div className="draft-note" role="status">Draft is saved automatically on this device.</div><div className="form-actions"><button type="button" className="button secondary" onClick={clear}>Clear form</button><button type="button" className="button secondary" onClick={saveDraft}><Save size={17}/> Save draft</button><button className="button primary" disabled={saving}>{saving?'Checking…':'Run pre-check'} <span>→</span></button></div>
     </form>
   </div>;
 }
