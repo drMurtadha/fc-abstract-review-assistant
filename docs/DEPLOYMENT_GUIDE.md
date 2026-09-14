@@ -4,7 +4,7 @@
 
 1. Push the repository to GitHub with the repository name `fc-abstract-review-assistant` (or update `base` in `vite.config.ts`).
 2. In repository **Settings → Pages**, select **GitHub Actions** as the source.
-3. Add the repository variable `VITE_APPS_SCRIPT_URL` if the backend is enabled.
+3. Add the repository Actions secret `VITE_APPS_SCRIPT_URL` if the backend is enabled.
 4. Push to `main`; the workflow builds and publishes `dist/`.
 
 Hash routing is used so direct navigation works reliably on GitHub Pages.

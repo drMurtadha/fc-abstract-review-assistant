@@ -30,7 +30,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
         env:
-          VITE_APPS_SCRIPT_URL: ${{ vars.VITE_APPS_SCRIPT_URL }}
+          VITE_APPS_SCRIPT_URL: ${{ secrets.VITE_APPS_SCRIPT_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
