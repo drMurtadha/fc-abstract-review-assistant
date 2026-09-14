@@ -37,4 +37,5 @@ export interface ReviewResult {
   finalDecision?: Exclude<ReviewStatus, 'Draft' | 'Pre-checked' | 'Pending reviewer decision'>;
   mainCorrections?: string;
   reviewerName?: string;
+  syncWarning?: string;
 }

@@ -4,14 +4,24 @@ const endpoint = import.meta.env.VITE_APPS_SCRIPT_URL as string | undefined;
 
 export async function callApi<T>(action: string, payload: unknown): Promise<T> {
   if (!endpoint) throw new Error('Apps Script endpoint is not configured.');
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action, payload })
-  });
-  const body = await response.json();
-  if (!body.success) throw new Error(body.error || 'API request failed.');
-  return body.data as T;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, payload }),
+      signal: controller.signal
+    });
+    const body = await response.json();
+    if (!body.success) throw new Error(body.error || 'API request failed.');
+    return body.data as T;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw new Error('The Google request timed out.');
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 const storageKey = 'fc-abstract-review-submissions';
@@ -28,7 +38,22 @@ export function saveLocalReview(review: ReviewResult): ReviewResult {
   return saved;
 }
 export async function saveSubmission(input: SubmissionInput, review: ReviewResult) {
-  if (endpoint) return callApi<{ submissionId: string; status: string }>('createSubmission', { ...input, reviewItems: review.items });
+  if (endpoint) {
+    try {
+      const saved = await callApi<{ submissionId: string; status: string }>('createSubmission', { ...input, reviewItems: review.items });
+      return { ...saved, backendSaved: true, warning: undefined as string | undefined };
+    } catch (error) {
+      const local = saveLocalReview(review);
+      return {
+        submissionId: local.submission.submissionId!,
+        status: 'Pre-checked',
+        backendSaved: false,
+        warning: error instanceof Error
+          ? `Pre-check completed locally, but Google storage is unavailable: ${error.message}`
+          : 'Pre-check completed locally, but Google storage is unavailable.'
+      };
+    }
+  }
   const saved = saveLocalReview(review);
-  return { submissionId: saved.submission.submissionId!, status: 'Pre-checked' };
+  return { submissionId: saved.submission.submissionId!, status: 'Pre-checked', backendSaved: false, warning: 'Pre-check completed in local mode. Google storage is not configured.' };
 }
