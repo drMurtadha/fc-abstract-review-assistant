@@ -1,0 +1,1 @@
+const AuditService={log:function(submissionId,action,actor,payload){SheetService.appendObject('Audit_Log',{log_id:Utilities.getUuid(),submission_id:submissionId,action:action,actor:actor||'system',payload:payload||{},created_at:now_()});}};

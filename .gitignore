@@ -1,0 +1,13 @@
+node_modules/
+.pnpm-store/
+dist/
+.env
+.DS_Store
+coverage/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+graphify-out/
+FC_Abstract_Review_App_Instructions_v2.md
+Thesis Abstract Guidelines_FC_Ver1.0.pdf
+Thesis Abstract Review Checklist_FC.docx
