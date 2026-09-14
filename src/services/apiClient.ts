@@ -57,3 +57,29 @@ export async function saveSubmission(input: SubmissionInput, review: ReviewResul
   const saved = saveLocalReview(review);
   return { submissionId: saved.submission.submissionId!, status: 'Pre-checked', backendSaved: false, warning: 'Pre-check completed in local mode. Google storage is not configured.' };
 }
+
+export async function saveReviewerDecision(review: ReviewResult) {
+  if (!review.backendSaved) {
+    return {
+      backendSaved: false,
+      warning: 'Decision saved in this browser only because the original submission was not synced to Google.'
+    };
+  }
+  try {
+    const saved = await callApi<{ status: string }>('saveReviewerDecision', {
+      submissionId: review.submission.submissionId,
+      finalDecision: review.finalDecision,
+      mainCorrections: review.mainCorrections || '',
+      reviewerName: review.reviewerName,
+      decisionDate: new Date().toISOString()
+    });
+    return { ...saved, backendSaved: true, warning: undefined as string | undefined };
+  } catch (error) {
+    return {
+      backendSaved: false,
+      warning: error instanceof Error
+        ? `Decision saved in this browser, but Google storage is unavailable: ${error.message}`
+        : 'Decision saved in this browser, but Google storage is unavailable.'
+    };
+  }
+}

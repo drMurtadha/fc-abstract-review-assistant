@@ -38,4 +38,5 @@ export interface ReviewResult {
   mainCorrections?: string;
   reviewerName?: string;
   syncWarning?: string;
+  backendSaved?: boolean;
 }
