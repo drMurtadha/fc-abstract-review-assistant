@@ -1,20 +1,22 @@
 import type { SubmissionInput } from '../types';
 
-const draftKey = 'fc-abstract-review-form-draft';
+const draftKey = (userId = 'local') => `fc-abstract-review-form-draft:${userId}`;
+const legacyDraftKey = 'fc-abstract-review-form-draft';
 
-export function loadFormDraft(fallback: SubmissionInput): SubmissionInput {
+export function loadFormDraft(fallback: SubmissionInput, userId?: string): SubmissionInput {
   try {
-    const saved = JSON.parse(localStorage.getItem(draftKey) || 'null') as Partial<SubmissionInput> | null;
+    const raw = localStorage.getItem(draftKey(userId)) || localStorage.getItem(legacyDraftKey);
+    const saved = JSON.parse(raw || 'null') as Partial<SubmissionInput> | null;
     return saved ? { ...fallback, ...saved } : fallback;
   } catch {
     return fallback;
   }
 }
 
-export function saveFormDraft(form: SubmissionInput): void {
-  localStorage.setItem(draftKey, JSON.stringify(form));
+export function saveFormDraft(form: SubmissionInput, userId?: string): void {
+  localStorage.setItem(draftKey(userId), JSON.stringify(form));
 }
 
-export function clearFormDraft(): void {
-  localStorage.removeItem(draftKey);
+export function clearFormDraft(userId?: string): void {
+  localStorage.removeItem(draftKey(userId));
 }

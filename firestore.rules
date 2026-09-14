@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isUtmUser() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('.*@utm[.]my$');
+    }
+
+    match /submissions/{submissionId} {
+      allow read, create, update: if isUtmUser();
+      allow delete: if false;
+    }
+
+    match /drafts/{userId} {
+      allow read, create, update, delete: if isUtmUser()
+        && request.auth.uid == userId;
+    }
+  }
+}
