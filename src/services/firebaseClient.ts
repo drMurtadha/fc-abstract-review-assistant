@@ -1,9 +1,10 @@
 import { initializeApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import { deleteDoc, doc, getDoc, getDocs, getFirestore, collection, setDoc } from 'firebase/firestore';
 import { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import type { ReviewResult, SubmissionInput } from '../types';
 
-const app = initializeApp({
+export const firebaseApp = initializeApp({
   apiKey: 'AIzaSyBrZUzQy2emIyrgsnIdndhDPkanFDVJOE8',
   authDomain: 'fc-abstract-review-assistant.firebaseapp.com',
   projectId: 'fc-abstract-review-assistant',
@@ -12,8 +13,29 @@ const app = initializeApp({
   appId: '1:311687430124:web:dcc5a862d0764ab5268ac9'
 });
 
-export const auth = getAuth(app);
-const db = getFirestore(app);
+declare global {
+  interface Window {
+    FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean | string;
+  }
+}
+
+// Debug mode lets App Check work on localhost, where the reCAPTCHA site key isn't
+// registered. Never active in a production build. Set VITE_APPCHECK_DEBUG_TOKEN in a
+// local, gitignored .env.local to pin a stable token; otherwise the SDK generates one
+// and logs it to the console on first run — register that value in the Firebase
+// Console under App Check > Manage debug tokens.
+if (import.meta.env.DEV) {
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = (import.meta.env.VITE_APPCHECK_DEBUG_TOKEN as string | undefined) || true;
+}
+
+const RECAPTCHA_ENTERPRISE_SITE_KEY = '6Le0lLstAAAAAB482v98Gy3WmpZXc1lFMVnOmwOW';
+initializeAppCheck(firebaseApp, {
+  provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_ENTERPRISE_SITE_KEY),
+  isTokenAutoRefreshEnabled: true
+});
+
+export const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ hd: 'utm.my' });
 

@@ -24,7 +24,8 @@ export interface ReviewItem {
   reviewerResult?: ItemResult;
   evidence: string;
   comment: string;
-  source: 'rule-based' | 'reviewer';
+  source: 'rule-based' | 'ai-assisted' | 'reviewer';
+  confidence?: number;
 }
 
 export interface ReviewResult {
@@ -39,4 +40,10 @@ export interface ReviewResult {
   reviewerName?: string;
   syncWarning?: string;
   backendSaved?: boolean;
+  aiStatus?: 'completed' | 'fallback';
+  aiModel?: string;
+  aiSummary?: string;
+  aiMajorCorrections?: string[];
+  suggestedEnglishAbstract?: string;
+  suggestedMalayAbstract?: string;
 }
